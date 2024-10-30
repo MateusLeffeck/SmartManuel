@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Página com Upload de Arquivo ou Link</title>
+    <style>
+        /* Seu CSS existente */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #f0f0f0;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 1em 0;
+            text-align: center;
+        }
+
+        nav {
+            background-color: #333;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            justify-content: center;
+        }
+
+        nav ul li {
+            margin: 0 1em;
+        }
+
+        nav ul li a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5em;
+        }
+
+        nav ul li a:hover {
+            background-color: #575757;
+            border-radius: 4px;
+        }
+
+        main {
+            padding: 2em;
+            flex: 1;
+        }
+
+        section {
+            margin-bottom: 2em;
+        }
+
+        footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 1em 0;
+        }
+
+        .upload-section {
+            text-align: center;
+            margin-top: 2em;
+        }
+
+        .upload-section input[type="file"],
+        .upload-section input[type="text"] {
+            display: block;
+            margin: 0.5em auto;
+            padding: 0.5em;
+            width: 80%;
+            max-width: 400px;
+        }
+
+        .upload-section button {
+            padding: 0.5em 1em;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Bem-vindo à Página com Upload de Arquivo ou Link</h1>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#home">Home</a></li>
+            <li><a href="#sobre">Sobre</a></li>
+            <li><a href="#upload">Upload</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="home">
+            <h2>Home</h2>
+            <p>Esta é a seção principal da página.</p>
+        </section>
+
+        <section id="sobre">
+            <h2>Sobre</h2>
+            <p>Informações sobre o conteúdo do site.</p>
+        </section>
+
+        <section id="upload" class="upload-section">
+            <h2>Upload de Arquivo ou Inserir Link</h2>
+            <form id="uploadForm" action="#" method="post" enctype="multipart/form-data">
+                <input type="file" name="arquivo" id="arquivo">
+                <p>OU</p>
+                <input type="text" name="videoUrl" id="videoUrl" placeholder="Insira a URL do vídeo do YouTube">
+                <button type="submit">Enviar</button>
+            </form>
+            <p id="fileInfo"></p>
+            <p id="resultado">
+                </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Página com Upload de Arquivo ou Link. Todos os direitos reservados.</p>
+    </footer>
+    <!-- Incluindo o PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
+    <!-- Seu JavaScript embutido -->
+    <script>
+        // Defina sua chave de API aqui
+        const OPEN_IA__API_KEY = open.ia;
+
+        async function readPDF(file) {
+            const fileReader = new FileReader();
+
+            return new Promise((resolve, reject) => {
+                fileReader.onload = async function () {
+                    const typedarray = new Uint8Array(this.result);
+
+                    const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                    let text = '';
+
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const content = await page.getTextContent();
+
+                        content.items.forEach(item => {
+                            text += item.str + ' ';
+                        });
+                    }
+
+                    resolve(text);
+                };
+
+                fileReader.onerror = function () {
+                    reject('Erro ao ler o arquivo PDF');
+                };
+
+                // Lê o PDF como um ArrayBuffer
+                fileReader.readAsArrayBuffer(file);
+            });
+        }
+
+        async function connectToChatGPT(fileContent, command, model) {
+            try {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': "Bearer " + OPEN_IA__API_KEY,
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        messages: [{ role: 'user', content: command + " " + fileContent }]
+                    })
+                });
+
+                const data = await response.json();
+                console.log('Resposta da API:', data);
+
+                // Retorna o conteúdo da resposta do ChatGPT
+                return data;
+            } catch (error) {
+                console.error('Erro ao chamar a API:', error);
+                throw error;
+            }
+        }
+
+        async function connectToChatGPTForImage(fileUrl, command, model) {
+            try {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': "Bearer " + OPEN_IA__API_KEY,
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        messages: [
+                            {
+                                role: 'user',
+                                content: [
+                                    { type: "text", text: command },
+                                    {
+                                        type: 'image_url',
+                                        image_url: { "url": fileUrl }
+                                    }
+                                ]
+                            }
+                        ]
+                    })
+                });
+
+                const data = await response.json();
+                console.log('Resposta da API:', data);
+
+                // Retorna o conteúdo da resposta do ChatGPT para a imagem
+                console.log(data);
+                return data;
+            } catch (error) {
+                console.error('Erro ao chamar a API:', error);
+                throw error;
+            }
+        }
+
+        async function connectToWhisper(audioBlob) {
+            const formData = new FormData();
+            formData.append('file', audioBlob);
+            formData.append('model', "whisper-1");
+            formData.append('language', "pt");
+
+            try {
+                const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': "Bearer " + OPEN_IA__API_KEY,
+                    },
+                    body: formData,
+                });
+
+                const data = await response.json();
+                console.log('Resposta da API:', data);
+
+                // Retorna o texto transcrito do áudio
+                return data;
+            } catch (error) {
+                console.error('Erro ao chamar a API:', error);
+                throw error;
+            }
+        }
+
+        async function downloadAndProcessAudio(videoUrl) {
+            try {
+                // Chamar o endpoint /download-audio/ com a URL do vídeo
+                const response = await fetch('/download-audio/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url: videoUrl })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    console.log('Áudio baixado com sucesso:', data);
+
+                    // Agora, vamos obter o arquivo de áudio do servidor
+                    const audioResponse = await fetch(data.audio_path);
+
+                    if (audioResponse.ok) {
+                        const audioBlob = await audioResponse.blob();
+
+                        // Chamar a função connectToWhisper existente para processar o áudio
+                        await connectToWhisper(audioBlob);
+                    } else {
+                        alert('Erro ao obter o arquivo de áudio do servidor.');
+                    }
+                } else {
+                    alert('Erro ao baixar o áudio: ' + data.detail);
+                }
+            } catch (error) {
+                console.error('Erro ao baixar e processar o áudio:', error);
+                alert('Erro ao baixar e processar o áudio. Veja o console para detalhes.');
+            }
+        }
+
+        document.getElementById('uploadForm').addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const fileInput = document.getElementById('arquivo');
+            const file = fileInput.files[0];
+            const videoUrlInput = document.getElementById('videoUrl');
+            const videoUrl = videoUrlInput.value.trim();
+            let retorno = "";
+
+            if (videoUrl) {
+                await downloadAndProcessAudio(videoUrl);
+                return;
+            }
+
+            if (!file) {
+                alert('Por favor, selecione um arquivo ou insira uma URL.');
+                return;
+            }
+
+            const fileInfo = document.getElementById('fileInfo');
+            fileInfo.textContent = `Arquivo selecionado: ${file.name} (${file.size} bytes, Tipo: ${file.type})`;
+            console.log(fileInfo.textContent);
+
+            const reader = new FileReader();
+            reader.onload = async function (e) {
+                const fileContent = e.target.result;
+                const [type, extension] = file.type.split('/');
+                let command = "";
+                let model = "gpt-4o";
+
+                console.log(type);
+                console.log(extension);
+
+                if (type === 'text') {
+                    command = "Separe cada tarefa em um novo tópico";
+                    retorno = await connectToChatGPT(fileContent, command, model);
+                } else if (type === 'image') {
+                    command = 'Escreva para mim o texto dessa imagem em tópicos, como tarefas a serem feitas';
+                    const imageUrl = URL.createObjectURL(file);
+                    retorno = await connectToChatGPTForImage(imageUrl, command, model);
+                } else if (extension === 'pdf') {
+                    command = "Leia esse PDF e escreva para mim as atividades a serem feitas como tópicos";
+                    try {
+                        const pdfText = await readPDF(file);
+                        retorno = await connectToChatGPT(pdfText, command, model);
+                    } catch (error) {
+                        alert('Erro ao ler o PDF: ' + error);
+                    }
+                } else if (type === 'audio') {
+                    retorno = await connectToWhisper(file);
+                    command = "Separe cada tarefa em um novo tópico";
+                    fileContent = "";
+                    let model = "gpt-4o";
+                    retorno = await connectToChatGPT(fileContent, command, model);
+
+                } else {
+                    alert('Tipo de arquivo não suportado para envio à API.');
+                }
+                reader.onerror = function () {
+                    alert('Erro ao ler o arquivo.');
+                };
+
+                // Aqui, ajustamos a forma como acessamos o texto do retorno
+                const resultadoDiv = document.getElementById('resultado');
+
+                if (type === 'text') {
+                    resultadoDiv.textContent = retorno.choices[0].message.content;
+                } else {
+                    // Se retorno for um objeto e você precisa acessar o texto da resposta
+                    resultadoDiv.textContent = retorno.choices[0].message.content;
+                }
+
+            };
+
+
+
+
+            if (file.type.startsWith('text/')) {
+                reader.readAsText(file);
+            } else if (file.type.startsWith('image/')) {
+                reader.readAsDataURL(file);
+            } else if (file.type.startsWith('audio/')) {
+                reader.readAsArrayBuffer(file);
+            } else if (file.type === 'application/pdf') {
+                reader.readAsArrayBuffer(file);
+            } else {
+                alert('Tipo de arquivo não suportado.');
+            }
+        });
+    </script>
+</body>
+
+</html>

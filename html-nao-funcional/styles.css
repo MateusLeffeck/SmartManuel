@@ -1,0 +1,20 @@
+.box {
+  border-radius: 8%;
+  background-color: #d8ebfb;
+}
+
+.btn-text {
+  font-size: 14px;
+  margin-bottom: 0px;
+  color: black;
+}
+
+.upload-section {
+  background-color: #f5f5f5;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.file-input {
+  display: none;
+}
